@@ -25,3 +25,4 @@ spec:
         backend:
           serviceName: traefik-web-ui
           servicePort: web
+
