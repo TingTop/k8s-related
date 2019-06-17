@@ -18,7 +18,7 @@ metadata:
   namespace: kube-system
 spec:
   rules:
-  - host: ui.traeflk.com
+  - host: fsl
     http:
       paths:
       - path: /
