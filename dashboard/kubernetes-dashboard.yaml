@@ -182,4 +182,3 @@ spec:
   type: NodePort
   selector:
     k8s-app: kubernetes-dashboard
-

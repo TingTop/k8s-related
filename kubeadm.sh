@@ -1,4 +1,3 @@
-
 KUBE_VERSION=v1.14.1
 DASHDOARD_VERSION=v1.10.1
 username=mirrorgooglecontainers
