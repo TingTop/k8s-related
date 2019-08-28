@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: html-pvc              #创建的pvc名称
+  namespace: fsl              #属于的命名空间 
+spec:
+  accessModes:
+    - ReadWriteMany                       
+  resources:
+    requests:
+      storage: 1Gi               #请求大小为1G
+  storageClassName: fsl
+
+---   
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: log-pvc              #创建的pvc名称
+  namespace: fsl              #属于的命名空间 
+spec:
+  accessModes:
+    - ReadWriteMany                       
+  resources:
+    requests:
+      storage: 1Gi               #请求大小为1G
+  storageClassName: fsl
+#--------------------------------创建pod------------------------------------
+---
+apiVersion: extensions/v1beta1   #接口版本
+kind: Deployment                 #接口类型
+metadata:                        #基础标签名称信息
+  name: fsl-nginx                #创建的pod名称
+  namespace: fsl             #创建的pod属于mt-math命名空间
+spec:                            #详细参数设置
+  replicas: 1                    #副本数量
+  selector:                      #标签选择器
+    matchLabels:
+      app: fsl-nginx             #正对标签为wyl-nginx的pod进行副本的创建
+  strategy:
+    rollingUpdate:               #由于replicas为3,则整个升级,pod个数在2-4个之间
+      maxSurge: 1                #滚动升级时会先启动1个pod
+      maxUnavailable: 1          #滚动升级时允许的最大Unavailable的pod个数
+  template:                      #模板
+    metadata:
+      labels:
+        app: fsl-nginx           #模板pod名称必填
+    spec:                        #定义容器模板信息，该模板可以包含多个容器
+      containers:
+        - name: fsl-nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+          volumeMounts:
+           - mountPath: /usr/share/nginx/html
+             name: nginx-html
+             subPath: html
+           - mountPath: /var/log/nginx
+             name: nginx-log
+             subPath: log
+           - mountPath: /etc/nginx/nginx.conf #挂载此目录
+             name: nginx-etc       #挂载数据节点名称
+             subPath: nginx.conf
+      volumes:                    #设置挂载
+      - name: nginx-html           #挂载数据节点名称
+        persistentVolumeClaim:    #服务类型
+          claimName: html-pvc #数据源名称
+      - name: nginx-log
+        persistentVolumeClaim:    #服务类型
+          claimName: log-pvc #数据源名称
+      - name: nginx-etc           #挂载数据节点名称
+        configMap:
+         name: nginxconfig        #指定创建configMap的名称
+         items:
+          - key: nginx.conf       #key为文件名称
+            path: nginx.conf      #文件路径内容
+---
+#-----------------------创建server-------------------------------------------
+kind: Service
+apiVersion: v1
+metadata:
+  name: fsl-nginx             
+  namespace: fsl             #属于的命名空间
+spec:
+  selector:
+    app: fsl-nginx              #针对标签为wyl-nginx的标签进行负载
+  type: NodePort                 #正对Node节点进行端口暴露
+  ports:                       
+    - protocol: TCP              #使用端口的协议
+      port: 80                 #供内网访问暴露的端口
+      targetPort: 80             #目标pod的端口
+      nodePort: 30080            #node节点暴露的端口
